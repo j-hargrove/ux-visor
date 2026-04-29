@@ -21,8 +21,25 @@ export default function Home() {
 
   const entries = Object.entries(dataset) as [string, StepData][];
 
-  const worstStep = Object.keys(dataset).reduce((worst, current) =>
-  dataset[current].dropOff > dataset[worst].dropOff ? current : worst
+  type StepData = {
+  users: number;
+  conversion: number;
+  dropOff: number;
+  trend: number;
+};
+
+const dataset: Record<string, StepData> = {
+  Landing: { users: 12432, conversion: 0.62, dropOff: 0.38, trend: -0.08 },
+  Signup: { users: 7632, conversion: 0.42, dropOff: 0.58, trend: -0.12 },
+  Onboarding: { users: 3200, conversion: 0.28, dropOff: 0.72, trend: -0.05 },
+  Activation: { users: 1400, conversion: 0.18, dropOff: 0.82, trend: -0.02 },
+};
+
+const worstStep = Object.keys(dataset).reduce((worst, current) =>
+  dataset[current as keyof typeof dataset].dropOff >
+  dataset[worst as keyof typeof dataset].dropOff
+    ? current
+    : worst
 );
 
   const [selectedStep, setSelectedStep] = useState<string>(worstStep);
