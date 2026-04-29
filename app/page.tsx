@@ -19,27 +19,9 @@ export default function Home() {
 
   const steps = Object.keys(dataset);
 
-
-  type StepData = {
-  users: number;
-  conversion: number;
-  dropOff: number;
-  trend: number;
-};
-
-const dataset: Record<string, StepData> = {
-  Landing: { users: 12432, conversion: 0.62, dropOff: 0.38, trend: -0.08 },
-  Signup: { users: 7632, conversion: 0.42, dropOff: 0.58, trend: -0.12 },
-  Onboarding: { users: 3200, conversion: 0.28, dropOff: 0.72, trend: -0.05 },
-  Activation: { users: 1400, conversion: 0.18, dropOff: 0.82, trend: -0.02 },
-};
-
-const worstStep = Object.keys(dataset).reduce((worst, current) =>
-  dataset[current as keyof typeof dataset].dropOff >
-  dataset[worst as keyof typeof dataset].dropOff
-    ? current
-    : worst
-);
+  const worstStep = steps.reduce((worst, current) =>
+    dataset[current].dropOff > dataset[worst].dropOff ? current : worst
+  );
 
   const [selectedStep, setSelectedStep] = useState<string>(worstStep);
   const [analysis, setAnalysis] = useState<any>(null);
@@ -85,7 +67,7 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
     setTimeout(() => {
       setAnalysis(analyze(selectedStep));
       setLoading(false);
-    }, 500);
+    }, 400);
   }, [selectedStep]);
 
   const styles: any = {
@@ -139,7 +121,7 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
     },
 
     right: {
-      width: 380,
+      width: 360,
       borderLeft: "1px solid #e5e7eb",
       background: "#fff",
       display: "flex",
@@ -180,7 +162,7 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
 
           {/* Metrics */}
           <div style={styles.grid}>
-            {Object.entries(metrics).map(([k, v]) => (
+            {Object.keys(metrics).map((k) => (
               <div
                 key={k}
                 style={styles.card}
@@ -192,7 +174,9 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
                 }
               >
                 <div style={{ fontSize: 11, color: "#6b7280" }}>{k}</div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>{v}</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>
+                  {metrics[k as keyof typeof metrics]}
+                </div>
               </div>
             ))}
           </div>
@@ -216,14 +200,14 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
                       : "transparent",
                     border: isWorst ? "1px solid #fecaca" : "none",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "scale(1.01)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                    }}
+                  >
                     <span>{step.label}</span>
                     <span>{step.value}%</span>
                   </div>
@@ -245,7 +229,6 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
                           : isActive
                           ? "#4f46e5"
                           : "#9ca3af",
-                        transition: "all 0.4s ease",
                       }}
                     />
                   </div>
@@ -267,7 +250,6 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
           }}
         >
           <span>✨ UX Visor</span>
-
           <span
             style={{
               fontSize: 10,
@@ -276,8 +258,6 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
               borderRadius: 6,
               background: "#eef2ff",
               color: "#4f46e5",
-              letterSpacing: "0.04em",
-              opacity: 0.85,
             }}
           >
             BETA
@@ -294,15 +274,12 @@ const worstStep = Object.keys(dataset).reduce((worst, current) =>
           ) : (
             <>
               <div style={{ fontWeight: 500 }}>{analysis.summary}</div>
-
               <div style={{ fontSize: 12, color: "#6b7280" }}>
                 {analysis.detail}
               </div>
-
               <div>
                 <strong>Impact:</strong> +{analysis.impact.toLocaleString()} users
               </div>
-
               <div>
                 <strong>Next:</strong> {analysis.next}
               </div>
