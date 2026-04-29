@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react";
 
+type StepData = {
+  users: number;
+  conversion: number;
+  dropOff: number;
+  trend: number;
+};
+
 export default function Home() {
-  const dataset: any = {
+  const dataset: Record<string, StepData> = {
     Landing: { users: 12432, conversion: 0.62, dropOff: 0.38, trend: -0.08 },
     Signup: { users: 7632, conversion: 0.42, dropOff: 0.58, trend: -0.12 },
     Onboarding: { users: 3200, conversion: 0.28, dropOff: 0.72, trend: -0.05 },
@@ -12,11 +19,13 @@ export default function Home() {
 
   const steps = Object.keys(dataset);
 
-  const worstStep = Object.entries(dataset).reduce((worst, current) =>
+  const entries = Object.entries(dataset) as [string, StepData][];
+
+  const worstStep = entries.reduce((worst, current) =>
     current[1].dropOff > worst[1].dropOff ? current : worst
   )[0];
 
-  const [selectedStep, setSelectedStep] = useState(worstStep);
+  const [selectedStep, setSelectedStep] = useState<string>(worstStep);
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -74,7 +83,7 @@ export default function Home() {
     container: { flex: 1, padding: 32 },
     content: { maxWidth: 960, margin: "0 auto" },
     title: { fontSize: 18, fontWeight: 600, marginBottom: 4 },
-    subtitle: { fontSize: 12, color: "#6b7280", marginBottom: 24 },
+    subtitle: { fontSize: 12, color: "#6b7280", marginBottom: 16 },
 
     grid: {
       display: "grid",
@@ -148,7 +157,10 @@ export default function Home() {
       <div style={styles.container}>
         <div style={styles.content}>
           <div style={styles.title}>Funnel Analysis</div>
-          <div style={styles.subtitle}>Last 30 days</div>
+
+          <div style={styles.subtitle}>
+            AI identifies the biggest drop-off and recommends what to fix
+          </div>
 
           {/* Metrics */}
           <div style={styles.grid}>
