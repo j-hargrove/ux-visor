@@ -19,9 +19,9 @@ export default function Home() {
 
   const steps = Object.keys(dataset);
 
-  const worstStep = steps.reduce((worst, current) =>
-    dataset[current].dropOff > dataset[worst].dropOff ? current : worst
-  );
+  const worstStep = Object.keys(dataset).reduce((worst, current) =>
+  dataset[current].dropOff > dataset[worst].dropOff ? current : worst
+);
 
   const [selectedStep, setSelectedStep] = useState<string>(worstStep);
   const [analysis, setAnalysis] = useState<any>(null);
