@@ -19,7 +19,6 @@ export default function Home() {
 
   const steps = Object.keys(dataset);
 
-  const entries = Object.entries(dataset) as [string, StepData][];
 
   type StepData = {
   users: number;
