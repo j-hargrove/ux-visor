@@ -18,6 +18,11 @@ export default function Home() {
   };
 
   const [dataset, setDataset] = useState(baseDataset);
+  const [history, setHistory] = useState<string[]>([]);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const steps = Object.keys(dataset);
 
   const worstStep = steps.reduce((worst, current) =>
@@ -25,15 +30,26 @@ export default function Home() {
   );
 
   const [selectedStep, setSelectedStep] = useState<string>(worstStep);
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+
+  // 🔥 Load memory from localStorage
+  useEffect(() => {
+    const savedHistory = localStorage.getItem("history");
+    const savedInsights = localStorage.getItem("insights");
+
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+    if (savedInsights) setInsights(JSON.parse(savedInsights));
+  }, []);
+
+  // 🔥 Persist memory
+  useEffect(() => {
+    localStorage.setItem("history", JSON.stringify(history));
+    localStorage.setItem("insights", JSON.stringify(insights));
+  }, [history, insights]);
 
   const funnel = steps.map((step, i) => ({
     label: step,
     value: i === 0 ? 100 : Math.round(dataset[step].conversion * 100),
   }));
-
-  const current = dataset[selectedStep];
 
   const calculateImpact = (step: string) => {
     const d = dataset[step];
@@ -43,40 +59,43 @@ export default function Home() {
   function analyze(step: string) {
     const d = dataset[step];
     const drop = Math.round(d.dropOff * 100);
-    const trend = Math.round(d.trend * 100);
     const impact = calculateImpact(step);
     const isWorst = step === worstStep;
 
-    const context: Record<string, string> = {
-      Landing: "expectation setting",
-      Signup: "commitment moment",
-      Onboarding: "first-time experience",
-      Activation: "value realization",
-    };
+    const visitedBefore = history.includes(step);
+    const repeatCount = history.filter((s) => s === step).length;
 
-    const causes = [
-      "unclear value proposition",
-      "too many required steps",
-      "cognitive overload",
-      "slow perceived performance",
-      "misaligned expectations",
-    ];
+    let memoryContext = "";
 
-    const cause = causes[Math.floor(Math.random() * causes.length)];
+    if (visitedBefore) {
+      memoryContext += `You've explored ${step} before. `;
+    }
+
+    if (repeatCount > 1) {
+      memoryContext += `Repeated focus suggests this is a priority area. `;
+    }
+
+    if (insights.length > 0) {
+      memoryContext += `You've already tested improvements in this funnel. `;
+    }
 
     return {
       summary: isWorst
-        ? `${step} is the primary failure point.`
-        : `${step} introduces moderate friction.`,
-      detail: `${drop}% of users drop off here ${
-        trend < 0 ? `(↓ ${Math.abs(trend)}% vs last period)` : ""
+        ? `${step} is still the primary failure point.`
+        : `${step} contributes to overall friction.`,
+
+      detail: `${drop}% of users drop off here.`,
+
+      reasoning: `${memoryContext}${
+        isWorst
+          ? `Users reach this stage but fail to continue, indicating post-intent friction.`
+          : `This step introduces incremental drop-off that compounds downstream.`
       }`,
-      reasoning: isWorst
-        ? `Users already showed intent before reaching ${step}, so this likely stems from ${cause} during ${context[step]}.`
-        : `This suggests localized friction, not systemic failure.`,
+
       recommendation: isWorst
-        ? `Simplify this step and reduce time-to-value.`
-        : `Optimize after higher-impact steps.`,
+        ? `Fix this step first for maximum impact.`
+        : `Optimize after addressing higher-impact steps.`,
+
       impact,
       confidence: isWorst ? "High" : "Medium",
     };
@@ -88,24 +107,51 @@ export default function Home() {
       setAnalysis(analyze(selectedStep));
       setLoading(false);
     }, 400);
-  }, [selectedStep, dataset]);
+  }, [selectedStep, dataset, history, insights]);
 
   const simulateFix = () => {
     const updated = { ...dataset };
+
     updated[selectedStep] = {
       ...updated[selectedStep],
       dropOff: Math.max(0, updated[selectedStep].dropOff - 0.15),
     };
+
     setDataset(updated);
+
+    setInsights((prev) => [
+      ...prev,
+      `Improved ${selectedStep} (simulated)`,
+    ]);
+  };
+
+  const resetSession = () => {
+    setHistory([]);
+    setInsights([]);
+    setDataset(baseDataset);
+    localStorage.clear();
   };
 
   const styles: any = {
-    page: { display: "flex", height: "100vh", fontFamily: "Inter, sans-serif", background: "#f6f7f9" },
+    page: {
+      display: "flex",
+      height: "100vh",
+      background: "#f6f7f9",
+      fontFamily: "Inter, sans-serif",
+    },
     left: { flex: 1, padding: 32 },
-    right: { width: 360, background: "#fff", borderLeft: "1px solid #e5e7eb" },
-    panel: { background: "#fff", padding: 16, borderRadius: 10, border: "1px solid #e5e7eb" },
+    right: {
+      width: 360,
+      background: "#fff",
+      borderLeft: "1px solid #e5e7eb",
+    },
+    panel: {
+      background: "#fff",
+      border: "1px solid #e5e7eb",
+      borderRadius: 10,
+      padding: 16,
+    },
     row: { marginBottom: 12, cursor: "pointer" },
-    bar: { height: 8, borderRadius: 999 },
   };
 
   return (
@@ -123,11 +169,14 @@ export default function Home() {
                 key={step.label}
                 style={{
                   ...styles.row,
-                  background: isWorst ? "#fef2f2" : "transparent",
                   padding: 8,
                   borderRadius: 6,
+                  background: isWorst ? "#fef2f2" : "transparent",
                 }}
-                onClick={() => setSelectedStep(step.label)}
+                onClick={() => {
+                  setSelectedStep(step.label);
+                  setHistory((prev) => [...prev, step.label]);
+                }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>{step.label}</span>
@@ -137,8 +186,9 @@ export default function Home() {
                 <div style={{ background: "#e5e7eb", marginTop: 4 }}>
                   <div
                     style={{
-                      ...styles.bar,
                       width: `${step.value}%`,
+                      height: 8,
+                      borderRadius: 999,
                       background: isWorst ? "#dc2626" : "#6366f1",
                     }}
                   />
@@ -149,7 +199,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* RIGHT */}
+      {/* RIGHT PANEL */}
       <div style={styles.right}>
         <div style={{ padding: 16, borderBottom: "1px solid #e5e7eb" }}>
           ✨ UX Visor <span style={{ fontSize: 10, color: "#6366f1" }}>BETA</span>
@@ -161,7 +211,10 @@ export default function Home() {
           ) : (
             <>
               <div style={{ fontWeight: 600 }}>{analysis.summary}</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>{analysis.detail}</div>
+
+              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                {analysis.detail}
+              </div>
 
               <div style={{ marginTop: 10 }}>
                 <strong>Why:</strong> {analysis.reasoning}
@@ -191,6 +244,38 @@ export default function Home() {
               >
                 Simulate Fix
               </button>
+
+              <button
+                onClick={resetSession}
+                style={{
+                  marginTop: 8,
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #eee",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Reset Session
+              </button>
+
+              {history.length > 0 && (
+                <div style={{ marginTop: 12, fontSize: 11, color: "#6b7280" }}>
+                  <strong>Session Memory:</strong>
+                  <div>{history.join(" → ")}</div>
+                </div>
+              )}
+
+              {insights.length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11, color: "#6b7280" }}>
+                  <strong>Changes Tested:</strong>
+                  <ul>
+                    {insights.map((i, idx) => (
+                      <li key={idx}>{i}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </div>
